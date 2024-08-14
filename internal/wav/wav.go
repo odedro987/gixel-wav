@@ -140,19 +140,17 @@ func decodeData(path string, offset int, metadata WavMetadata, signal *Signal) e
 	fmt.Println("number of samples", sampleNum)
 	samples := make([]float32, sampleNum)
 
+	var bytes = make([]byte, chunkSize)
+	_, err = file.Read(bytes)
+	if err != nil {
+		return fmt.Errorf("failed reading bytes: %w", err)
+	}
+
+	// TODO: support all BitsPerSample
 	for i := 0; i < sampleNum; i++ {
-		var offset = 44 + i*bytesPerSample*metadata.ChannelNum
-		sampleBytes := make([]byte, bytesPerSample)
-		_, err = file.Seek(int64(offset), io.SeekStart)
-		if err != nil {
-			return fmt.Errorf("failed reading bytes: %w", err)
-		}
-		_, err = file.Read(sampleBytes)
-		if err != nil {
-			return fmt.Errorf("failed reading bytes: %w", err)
-		}
-		bits := binary.LittleEndian.Uint16(sampleBytes)
-		samples[i] = float32(bits) * float32(normFactor)
+		var offset = i * bytesPerSample * metadata.ChannelNum
+		test := int(int16(binary.LittleEndian.Uint16(bytes[offset : offset+bytesPerSample])))
+		samples[i] = float32(test) * float32(normFactor)
 	}
 
 	signal.SampleRate = metadata.SampleRate
